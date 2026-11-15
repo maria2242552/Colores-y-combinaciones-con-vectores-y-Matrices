@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colores, píxeles y matrices</title>
+
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9;
+         color: #1b1f24; margin: 0 auto; padding: 16px; max-width: 1000px; line-height: 1.5; }
+
+  /* ===== PARTE 1: diseño del mezclador ===== */
+  .s { color: #5d6672; margin: 0 0 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .card { background: #fff; border: 1px solid #dde1e6; border-radius: 10px;
+          padding: 12px; margin-bottom: 12px; }
+  .card h2 { font-size: 1rem; margin: 0 0 8px; }
+  .sw { height: 110px; border-radius: 8px; border: 1px solid #dde1e6; margin-bottom: 8px; }
+  .pal { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pal button { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #dde1e6;
+                padding: 0; margin: 0; cursor: pointer; }
+  input[type=color] { width: 100%; height: 40px; border: 1px solid #dde1e6; border-radius: 6px;
+                      background: #f6f7f9; padding: 2px; cursor: pointer; }
+  input[type=range] { width: 100%; }
+  .card label { display: block; font-size: .85rem; margin: 10px 0 2px; }
+  .card label b { float: right; color: #2f6fed; font-variant-numeric: tabular-nums; }
+  button.m { font-size: .9rem; padding: 8px 12px; border-radius: 6px; border: 0;
+             background: #2f6fed; color: #fff; cursor: pointer; margin: 6px 6px 0 0; }
+  .f { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem;
+       background: #f6f7f9; border: 1px solid #dde1e6; border-radius: 6px;
+       padding: 8px; overflow-x: auto; white-space: pre; margin: 6px 0; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ===== PARTES 2 y 3 ===== */
+  .caja { background: white; border: 1px solid #ccc; border-radius: 8px;
+          padding: 12px; margin-bottom: 15px; }
+  pre { background: #eee; padding: 8px; }
+
+  /* Imagen de 3x3 píxeles */
+  #imagen { display: grid; grid-template-columns: 70px 70px 70px; gap: 4px; }
+  .pixel { width: 70px; height: 70px; border: 2px solid #999; cursor: pointer; }
+  .pixel.sel { border: 4px solid black; }
+
+  /* Matrices */
+  table { border-collapse: collapse; display: inline-table; margin-right: 20px; }
+  td { border: 1px solid #333; width: 45px; height: 35px; text-align: center; }
+  td.sel { background: yellow; font-weight: bold; }
+
+  /* Lienzo para dibujar (parte 3) */
+  #lienzo { display: grid; gap: 1px; background: #999; width: max-content;
+            user-select: none; cursor: crosshair; }
+  .celda { width: var(--c); height: var(--c); }
+  table.chica td { width: 28px; height: 24px; font-size: 11px; }
+  #vista { max-width: 160px; max-height: 160px; border: 1px solid #333; display: none; }
+  #mensaje { color: darkred; }
+</style>
+</head>
+
+<body>
+
+<h1>Colores, píxeles y matrices</h1>
+
+<!-- ========== PARTE 1: EL MEZCLADOR ========== -->
+<h2>1. Un color es un vector [R, G, B]</h2>
+<p class="s">En pantalla, un color es un vector de tres números: <b>[R, G, B]</b>, cada uno de 0 a 255. Mezclar colores es sumar vectores y multiplicarlos por números. Elige dos colores y cambia cuánto usas de cada uno.</p>
+
+<div class="grid">
+
+  <!-- Color 1 -->
+  <div class="card">
+    <h2>Color 1</h2>
+    <div class="sw" id="cuadro1"></div>
+    <div class="pal" id="paleta1"></div>
+    <input type="color" id="color1" value="#ff0000" oninput="cambiarSelector(1)">
+
+    <label>Rojo <b id="tr1">255</b></label>
+    <input type="range" id="r1" min="0" max="255" value="255" oninput="cambiarSlider(1)">
+    <label>Verde <b id="tg1">0</b></label>
+    <input type="range" id="g1" min="0" max="255" value="0" oninput="cambiarSlider(1)">
+    <label>Azul <b id="tb1">0</b></label>
+    <input type="range" id="b1" min="0" max="255" value="0" oninput="cambiarSlider(1)">
+
+    <div class="f" id="vector1"></div>
+  </div>
+
+  <!-- Color 2 -->
+  <div class="card">
+    <h2>Color 2</h2>
+    <div class="sw" id="cuadro2"></div>
+    <div class="pal" id="paleta2"></div>
+    <input type="color" id="color2" value="#0000ff" oninput="cambiarSelector(2)">
+
+    <label>Rojo <b id="tr2">0</b></label>
+    <input type="range" id="r2" min="0" max="255" value="0" oninput="cambiarSlider(2)">
+    <label>Verde <b id="tg2">0</b></label>
+    <input type="range" id="g2" min="0" max="255" value="0" oninput="cambiarSlider(2)">
+    <label>Azul <b id="tb2">255</b></label>
+    <input type="range" id="b2" min="0" max="255" value="255" oninput="cambiarSlider(2)">
+
+    <div class="f" id="vector2"></div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>Cuánto usar de cada uno</h2>
+    <label>Número a (multiplica al color 1) <b id="textoA">0.50</b></label>
+    <input type="range" id="a" min="0" max="2" step="0.05" value="0.5" oninput="mezclar()">
+    <label>Número b (multiplica al color 2) <b id="textoB">0.50</b></label>
+    <input type="range" id="b" min="0" max="2" step="0.05" value="0.5" oninput="mezclar()">
+
+    <button class="m" onclick="ponerAB(0.5, 0.5)">Mezcla 50 / 50</button>
+    <button class="m" onclick="ponerAB(1, 0)">Solo color 1</button>
+    <button class="m" onclick="ponerAB(0, 1)">Solo color 2</button>
+
+    <p class="s" style="margin:10px 0 0">Si a + b = 1 es una mezcla normal. Si suman menos de 1 el resultado se oscurece, y si suman más de 1 se aclara.</p>
+  </div>
+
+  <div class="card">
+    <h2>Resultado</h2>
+    <div class="sw" id="cuadroResultado"></div>
+    <div class="f" id="cuenta"></div>
+  </div>
+</div>
+
+<!-- ========== PARTE 2: LA IMAGEN DE 3x3 ========== -->
+<h2>2. Una imagen es una matriz de píxeles</h2>
+
+<div class="caja">
+  <h3>Imagen de 3x3 píxeles</h3>
+  <p>Haz clic en un píxel y luego pulsa el botón para pintarlo con el color del resultado.</p>
+  <div id="imagen"></div>
+  <br>
+  <button onclick="pintarPixel()">Pintar el píxel seleccionado</button>
+  <button onclick="pintarTodos()">Pintar todos</button>
+  <pre id="infoPixel"></pre>
+</div>
+
+<div class="caja">
+  <h3>Las tres matrices de la imagen</h3>
+  <b>Matriz R</b> <b style="margin-left:140px">Matriz G</b> <b style="margin-left:140px">Matriz B</b><br>
+  <table id="tablaR"></table>
+  <table id="tablaG"></table>
+  <table id="tablaB"></table>
+</div>
+
+<!-- ========== PARTE 3: TU PROPIA IMAGEN ========== -->
+<h2>3. Tu propia imagen</h2>
+
+<div class="caja">
+  <p><b>Opción A:</b> sube una imagen. Se reduce a una cuadrícula de píxeles (cada píxel toma el color de esa zona de la foto).<br>
+     <b>Opción B:</b> dibuja. Haz clic, o mantén el clic y arrastra, para pintar con el <b>color del resultado</b> de la parte 1.</p>
+
+  <input type="file" accept="image/*" onchange="cargarImagen(event)">
+  Tamaño:
+  <select id="tam" onchange="cambiarTam()">
+    <option value="8">8 x 8</option>
+    <option value="12">12 x 12</option>
+    <option value="16">16 x 16</option>
+  </select>
+  <button onclick="limpiarLienzo()">Borrar todo (blanco)</button>
+  <p id="mensaje"></p>
+  <p>Imagen original (aparece al subir una):</p>
+  <img id="vista" alt="Imagen original">
+  <br><br>
+
+  <div id="lienzo"></div>
+
+  <p>Ver la matriz del canal:
+    <select id="canal" onchange="dibujarTabla()">
+      <option value="0">R (rojo)</option>
+      <option value="1">G (verde)</option>
+      <option value="2">B (azul)</option>
+    </select>
+  </p>
+  <div style="overflow-x:auto"><table id="tablaLienzo" class="chica"></table></div>
+  <pre id="infoLienzo"></pre>
+</div>
+
+<script>
+  // ---------- DATOS ----------
+  // La imagen de la parte 2: 9 píxeles. Cada píxel es un vector [R, G, B].
+  var imagen = [
+    [255, 0, 0],   [0, 255, 0],     [0, 0, 255],
+    [255, 255, 0], [255, 255, 255], [0, 255, 255],
+    [255, 0, 255], [128, 128, 128], [0, 0, 0]
+  ];
+  var seleccionado = 4;      // número del píxel seleccionado (0 a 8)
+  var resultado = [0, 0, 0]; // color que sale de la mezcla
+
+  // Colores de la paleta (círculos de colores)
+  var paleta  = ["#ff0000", "#ff8000", "#ffff00", "#00c000", "#00ffff",
+                 "#0000ff", "#ff00ff", "#ffffff", "#808080", "#000000"];
+  var nombres = ["Rojo", "Naranja", "Amarillo", "Verde", "Cian",
+                 "Azul", "Magenta", "Blanco", "Gris", "Negro"];
+
+  // Datos de la parte 3
+  var TAM = 8;               // la cuadrícula es de TAM x TAM píxeles
+  var lienzo = [];           // lista con TAM*TAM vectores [R, G, B]
+  var pintando = false;      // true mientras se mantiene el clic apretado
+  var hover = 0;             // celda sobre la que está el mouse
+
+  // ---------- FUNCIONES AUXILIARES ----------
+
+  // Convierte "#ff0000" en [255, 0, 0]
+  function hexARgb(hex) {
+    var r = parseInt(hex.substring(1, 3), 16);
+    var g = parseInt(hex.substring(3, 5), 16);
+    var b = parseInt(hex.substring(5, 7), 16);
+    return [r, g, b];
+  }
+
+  // Convierte un número (0 a 255) en dos letras hexadecimales, por ejemplo 10 -> "0a"
+  function dosDigitos(n) {
+    var s = n.toString(16);
+    if (s.length < 2) { s = "0" + s; }
+    return s;
+  }
+
+  // Convierte [255, 0, 0] en "#ff0000"
+  function rgbAHex(v) {
+    return "#" + dosDigitos(v[0]) + dosDigitos(v[1]) + dosDigitos(v[2]);
+  }
+
+  // Convierte [255, 0, 0] en "rgb(255,0,0)" para pintar en pantalla
+  function texto(v) {
+    return "rgb(" + v[0] + "," + v[1] + "," + v[2] + ")";
+  }
+
+  // Si el número es menor que 0 lo deja en 0, y si pasa de 255 lo deja en 255
+  function limitar(n) {
+    if (n < 0) { return 0; }
+    if (n > 255) { return 255; }
+    return Math.round(n);
+  }
+
+  // Deja un número con un solo decimal (127.5)
+  function unDecimal(n) {
+    return Math.round(n * 10) / 10;
+  }
+
+  // ---------- PARTE 1: MEZCLAR COLORES ----------
+
+  // Dibuja los círculos de colores de las dos paletas
+  function crearPaletas() {
+    for (var k = 1; k <= 2; k++) {
+      var html = "";
+      for (var i = 0; i < paleta.length; i++) {
+        html = html + '<button style="background:' + paleta[i] + '" title="' + nombres[i] +
+               '" onclick="elegirPaleta(' + k + ',' + i + ')"></button>';
+      }
+      document.getElementById("paleta" + k).innerHTML = html;
+    }
+  }
+
+  // Se llama al hacer clic en un círculo de la paleta
+  function elegirPaleta(k, i) {
+    ponerColor(k, hexARgb(paleta[i]));
+  }
+
+  // Se llama al mover un deslizador de rojo, verde o azul
+  function cambiarSlider(k) {
+    var r = parseInt(document.getElementById("r" + k).value);
+    var g = parseInt(document.getElementById("g" + k).value);
+    var b = parseInt(document.getElementById("b" + k).value);
+    ponerColor(k, [r, g, b]);
+  }
+
+  // Se llama al elegir un color con el selector de color
+  function cambiarSelector(k) {
+    ponerColor(k, hexARgb(document.getElementById("color" + k).value));
+  }
+
+  // Pone el color v en el color k (1 o 2): actualiza selector, deslizadores y números
+  function ponerColor(k, v) {
+    document.getElementById("color" + k).value = rgbAHex(v);
+    document.getElementById("r" + k).value = v[0];
+    document.getElementById("g" + k).value = v[1];
+    document.getElementById("b" + k).value = v[2];
+    document.getElementById("tr" + k).textContent = v[0];
+    document.getElementById("tg" + k).textContent = v[1];
+    document.getElementById("tb" + k).textContent = v[2];
+    mezclar();
+  }
+
+  // Botones rápidos: ponen los valores de a y b
+  function ponerAB(a, b) {
+    document.getElementById("a").value = a;
+    document.getElementById("b").value = b;
+    mezclar();
+  }
+
+  // Calcula a*c1 + b*c2 y lo muestra en pantalla
+  function mezclar() {
+    var c1 = hexARgb(document.getElementById("color1").value);
+    var c2 = hexARgb(document.getElementById("color2").value);
+    var a = parseFloat(document.getElementById("a").value);
+    var b = parseFloat(document.getElementById("b").value);
+
+    // Calculamos a*c1 + b*c2, componente por componente
+    var suma = [];       // resultado sin limitar
+    var res = [];        // resultado limitado entre 0 y 255
+    var parte1 = [];     // a * c1
+    var parte2 = [];     // b * c2
+    for (var i = 0; i < 3; i++) {
+      parte1[i] = unDecimal(a * c1[i]);
+      parte2[i] = unDecimal(b * c2[i]);
+      suma[i] = unDecimal(a * c1[i] + b * c2[i]);
+      res[i] = limitar(a * c1[i] + b * c2[i]);
+    }
+    resultado = res;
+
+    // Mostramos todo en pantalla
+    document.getElementById("textoA").textContent = a.toFixed(2);
+    document.getElementById("textoB").textContent = b.toFixed(2);
+    document.getElementById("cuadro1").style.background = texto(c1);
+    document.getElementById("cuadro2").style.background = texto(c2);
+    document.getElementById("cuadroResultado").style.background = texto(res);
+    document.getElementById("vector1").textContent = "c₁ = [" + c1.join(", ") + "]";
+    document.getElementById("vector2").textContent = "c₂ = [" + c2.join(", ") + "]";
+    document.getElementById("cuenta").textContent =
+      "a·c₁ + b·c₂\n" +
+      "= " + a.toFixed(2) + "·[" + c1.join(", ") + "] + " + b.toFixed(2) + "·[" + c2.join(", ") + "]\n" +
+      "= [" + parte1.join(", ") + "] + [" + parte2.join(", ") + "]\n" +
+      "= [" + suma.join(", ") + "]\n" +
+      "resultado (entre 0 y 255) = [" + res.join(", ") + "]";
+  }
+
+  // ---------- PARTE 2: LA IMAGEN Y LAS MATRICES ----------
+
+  // Crea la tabla (matriz) de un canal: 0 = R, 1 = G, 2 = B
+  function crearTabla(canal) {
+    var s = "";
+    for (var fila = 0; fila < 3; fila++) {
+      s = s + "<tr>";
+      for (var col = 0; col < 3; col++) {
+        var i = fila * 3 + col;          // posición del píxel en la lista
+        var clase = "";
+        if (i == seleccionado) { clase = ' class="sel"'; }
+        s = s + "<td" + clase + ">" + imagen[i][canal] + "</td>";
+      }
+      s = s + "</tr>";
+    }
+    return s;
+  }
+
+  // Dibuja los 9 píxeles, las 3 matrices y la información del píxel
+  function dibujarImagen() {
+    var html = "";
+    for (var i = 0; i < 9; i++) {
+      var clase = "pixel";
+      if (i == seleccionado) { clase = "pixel sel"; }
+      html = html + '<button class="' + clase + '" style="background:' +
+             texto(imagen[i]) + '" onclick="seleccionar(' + i + ')"></button>';
+    }
+    document.getElementById("imagen").innerHTML = html;
+
+    document.getElementById("tablaR").innerHTML = crearTabla(0);
+    document.getElementById("tablaG").innerHTML = crearTabla(1);
+    document.getElementById("tablaB").innerHTML = crearTabla(2);
+
+    var fila = Math.floor(seleccionado / 3) + 1;
+    var col = (seleccionado % 3) + 1;
+    var v = imagen[seleccionado];
+    document.getElementById("infoPixel").textContent =
+      "Píxel seleccionado: fila " + fila + ", columna " + col + "\n" +
+      "Su vector es [" + v.join(", ") + "]";
+  }
+
+  function seleccionar(i) {
+    seleccionado = i;
+    dibujarImagen();
+  }
+
+  function pintarPixel() {
+    imagen[seleccionado] = [resultado[0], resultado[1], resultado[2]];
+    dibujarImagen();
+  }
+
+  function pintarTodos() {
+    for (var i = 0; i < 9; i++) {
+      imagen[i] = [resultado[0], resultado[1], resultado[2]];
+    }
+    dibujarImagen();
+  }
+
+  // ---------- PARTE 3: DIBUJAR O SUBIR UNA IMAGEN ----------
+
+  // Crea la cuadrícula de celdas, todas blancas al inicio
+  function crearLienzo() {
+    var contenedor = document.getElementById("lienzo");
+    var lado = Math.floor(320 / TAM);   // tamaño de cada celda en pantalla
+    contenedor.style.setProperty("--c", lado + "px");
+    contenedor.style.gridTemplateColumns = "repeat(" + TAM + ", " + lado + "px)";
+    hover = 0;
+    var html = "";
+    for (var i = 0; i < TAM * TAM; i++) {
+      lienzo[i] = [255, 255, 255];
+      html = html + '<div class="celda" id="celda' + i + '" ' +
+             'onmousedown="empezar(' + i + ')" onmouseover="pasar(' + i + ')"></div>';
+    }
+    contenedor.innerHTML = html;
+    dibujarLienzo();
+  }
+
+  // Se llama al hacer clic sobre una celda
+  function empezar(i) {
+    pintando = true;
+    pintarCelda(i);
+  }
+
+  // Se llama cuando el mouse pasa por encima de una celda
+  function pasar(i) {
+    hover = i;
+    if (pintando) {
+      pintarCelda(i);
+    } else {
+      dibujarTabla();
+    }
+  }
+
+  // Pinta una celda con el color del resultado
+  function pintarCelda(i) {
+    lienzo[i] = [resultado[0], resultado[1], resultado[2]];
+    hover = i;
+    actualizarCelda(i);
+    dibujarTabla();
+  }
+
+  // Cambia el color en pantalla de una sola celda
+  function actualizarCelda(i) {
+    document.getElementById("celda" + i).style.background = texto(lienzo[i]);
+  }
+
+  // Actualiza todas las celdas y la tabla
+  function dibujarLienzo() {
+    for (var i = 0; i < TAM * TAM; i++) {
+      actualizarCelda(i);
+    }
+    dibujarTabla();
+  }
+
+  // Muestra la matriz del canal elegido (R, G o B)
+  function dibujarTabla() {
+    var canal = parseInt(document.getElementById("canal").value);
+    var s = "";
+    for (var fila = 0; fila < TAM; fila++) {
+      s = s + "<tr>";
+      for (var col = 0; col < TAM; col++) {
+        var i = fila * TAM + col;
+        var clase = "";
+        if (i == hover) { clase = ' class="sel"'; }
+        s = s + "<td" + clase + ">" + lienzo[i][canal] + "</td>";
+      }
+      s = s + "</tr>";
+    }
+    document.getElementById("tablaLienzo").innerHTML = s;
+
+    var f = Math.floor(hover / TAM) + 1;
+    var c = (hover % TAM) + 1;
+    document.getElementById("infoLienzo").textContent =
+      "Píxel marcado: fila " + f + ", columna " + c + "\n" +
+      "Su vector es [" + lienzo[hover].join(", ") + "]";
+  }
+
+  // Pone todo el lienzo en blanco
+  function limpiarLienzo() {
+    for (var i = 0; i < TAM * TAM; i++) {
+      lienzo[i] = [255, 255, 255];
+    }
+    dibujarLienzo();
+  }
+
+  // Aquí se guarda la imagen subida (para poder cambiar el tamaño después)
+  var imgActual = null;
+
+  // Paso 1: leer el archivo que eligió el usuario
+  function cargarImagen(evento) {
+    var archivo = evento.target.files[0];
+    if (!archivo) { return; }
+    document.getElementById("mensaje").textContent = "";
+
+    var lector = new FileReader();
+    lector.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        imgActual = img;
+        // Mostramos la imagen original para compararla con los píxeles
+        var vista = document.getElementById("vista");
+        vista.src = lector.result;
+        vista.style.display = "block";
+        convertirImagen();
+      };
+      img.onerror = function () {
+        document.getElementById("mensaje").textContent =
+          "No se pudo leer ese archivo. Prueba con una imagen JPG o PNG.";
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+    evento.target.value = "";   // permite volver a subir el mismo archivo
+  }
+
+  // Paso 2: reducir la imagen a TAM x TAM píxeles.
+  // Cada píxel nuevo es el PROMEDIO de un bloque de 10 x 10 píxeles de la imagen grande.
+  function convertirImagen() {
+    if (imgActual == null) { return; }
+    var BLOQUE = 10;
+    var lado = TAM * BLOQUE;
+
+    // Canvas escondido donde dibujamos la imagen, recortada al centro en cuadrado
+    var c = document.createElement("canvas");
+    c.width = lado;
+    c.height = lado;
+    var ctx = c.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, lado, lado);
+    var m = Math.min(imgActual.width, imgActual.height);
+    var sx = (imgActual.width - m) / 2;
+    var sy = (imgActual.height - m) / 2;
+    ctx.drawImage(imgActual, sx, sy, m, m, 0, 0, lado, lado);
+
+    // datos tiene 4 números por píxel: R, G, B y transparencia
+    var datos;
+    try {
+      datos = ctx.getImageData(0, 0, lado, lado).data;
+    } catch (error) {
+      document.getElementById("mensaje").textContent =
+        "El navegador no permitió leer los píxeles de esa imagen.";
+      return;
+    }
+
+    // Recorremos cada celda y promediamos su bloque
+    for (var fila = 0; fila < TAM; fila++) {
+      for (var col = 0; col < TAM; col++) {
+        var suma = [0, 0, 0];
+        for (var y = 0; y < BLOQUE; y++) {
+          for (var x = 0; x < BLOQUE; x++) {
+            var pos = ((fila * BLOQUE + y) * lado + (col * BLOQUE + x)) * 4;
+            suma[0] = suma[0] + datos[pos];
+            suma[1] = suma[1] + datos[pos + 1];
+            suma[2] = suma[2] + datos[pos + 2];
+          }
+        }
+        var n = BLOQUE * BLOQUE;
+        lienzo[fila * TAM + col] = [Math.round(suma[0] / n),
+                                    Math.round(suma[1] / n),
+                                    Math.round(suma[2] / n)];
+      }
+    }
+    dibujarLienzo();
+  }
+
+  // Cambia el tamaño de la cuadrícula (8, 12 o 16)
+  function cambiarTam() {
+    TAM = parseInt(document.getElementById("tam").value);
+    crearLienzo();
+    convertirImagen();   // si ya hay una imagen subida, la convierte otra vez
+  }
+
+  // Cuando se suelta el clic en cualquier parte, se deja de pintar
+  document.onmouseup = function () { pintando = false; };
+
+  // ---------- AL ABRIR LA PÁGINA ----------
+  crearPaletas();
+  ponerColor(1, [255, 0, 0]);
+  ponerColor(2, [0, 0, 255]);
+  dibujarImagen();
+  crearLienzo();
+</script>
+
+</body>
+</html>
